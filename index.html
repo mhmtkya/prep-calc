@@ -1,337 +1,87 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prep Tracker & FatSecret Sync</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --accent: #10b981;
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --danger: #ef4444;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 20px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        h1 { font-size: 1.4rem; text-align: center; margin-bottom: 8px; }
-        .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
-        
-        .api-config {
-            background: #1e293b;
-            border: 1px dashed var(--muted);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .api-config summary { font-weight: bold; cursor: pointer; font-size: 0.85rem; color: var(--muted); }
-        .api-config input {
-            width: 100%;
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: white;
-            padding: 6px;
-            border-radius: 4px;
-            margin-top: 6px;
-            box-sizing: border-box;
-            font-size: 0.8rem;
-        }
+export default {
+  async fetch(request, env, ctx) {
+    // CORS başlıkları (Sadece senin GitHub Pages sitene izin verir)
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
 
-        .box-card {
-            background: var(--card);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid #334155;
-            transition: all 0.2s ease;
-        }
-        .box-card.eaten {
-            opacity: 0.5;
-            border-color: #334155;
-        }
-        .box-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        .inputs {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin: 12px 0;
-        }
-        .input-group label {
-            display: block;
-            font-size: 0.7rem;
-            color: var(--muted);
-            margin-bottom: 2px;
-        }
-        .input-group input {
-            width: 100%;
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: white;
-            padding: 6px;
-            border-radius: 6px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-        button.btn-eat {
-            width: 100%;
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button.btn-eat:disabled {
-            background: #334155;
-            cursor: not-allowed;
-        }
-        .badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: #065f46;
-            color: #34d399;
-        }
-        .status-msg {
-            font-size: 0.8rem;
-            text-align: center;
-            margin-top: 6px;
-            min-height: 18px;
-        }
-        .btn-reset {
-            display: block;
-            width: 100%;
-            background: transparent;
-            color: var(--muted);
-            border: 1px solid var(--muted);
-            padding: 8px;
-            border-radius: 8px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-    </style>
-</head>
-<body>
+    // Preflight (OPTIONS) isteklerini yanıtla
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
 
-    <h1>📦 Prep Tracker & FatSecret</h1>
-    <div class="subtitle">NFC Okut / Tıkla $\rightarrow$ Doğrudan FatSecret'a İşlensin</div>
+    if (request.method !== "POST") {
+      return new Response("Sadece POST istekleri kabul edilir.", { status: 405, headers: corsHeaders });
+    }
 
-    <!-- API Bilgileri Ayar Menüsü -->
-    <details class="api-config">
-        <summary>⚙️ FatSecret API Ayarları</summary>
-        <div style="margin-top: 8px;">
-            <label style="font-size:0.7rem; color:var(--muted);">Client ID (Consumer Key):</label>
-            <input type="text" id="clientId" placeholder="FatSecret Client ID" onchange="saveApiKeys()">
-            <label style="font-size:0.7rem; color:var(--muted); margin-top:6px; display:block;">Client Secret:</label>
-            <input type="password" id="clientSecret" placeholder="FatSecret Client Secret" onchange="saveApiKeys()">
-        </div>
-    </details>
+    try {
+      const body = await request.json();
+      const { clientId, clientSecret, boxName, calories, protein, carb, fat } = body;
 
-    <div id="boxes-container"></div>
+      if (!clientId || !clientSecret) {
+        return new Response(JSON.stringify({ error: "Client ID ve Secret eksik!" }), { status: 400, headers: corsHeaders });
+      }
 
-    <button class="btn-reset" onclick="resetWeek()">🔄 Yeni Hafta (Sıfırla)</button>
+      // 1. FatSecret'tan Access Token Al
+      const tokenUrl = "https://oauth.fatsecret.com/connect/token";
+      const tokenParams = new URLSearchParams({
+        grant_type: "client_credentials",
+        scope: "basic premier"
+      });
 
-    <script>
-        // Varsayılan Kutular
-        const defaultBoxes = [
-            { id: 1, name: "Kutu 1", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 2, name: "Kutu 2", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 3, name: "Kutu 3", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 4, name: "Kutu 4", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 5, name: "Kutu 5", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false }
-        ];
+      const credentials = btoa(`${clientId}:${clientSecret}`);
+      const tokenRes = await fetch(tokenUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${credentials}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: tokenParams
+      });
 
-        let boxes = JSON.parse(localStorage.getItem('prep_boxes')) || defaultBoxes;
+      if (!tokenRes.ok) {
+        const errText = await tokenRes.text();
+        return new Response(JSON.stringify({ error: "OAuth Hatası: " + errText }), { status: 401, headers: corsHeaders });
+      }
 
-        // Sayfa Yüklenirken API Bilgilerini Hazırla
-        document.getElementById('clientId').value = localStorage.getItem('fs_client_id') || '';
-        document.getElementById('clientSecret').value = localStorage.getItem('fs_client_secret') || '';
+      const tokenData = await tokenRes.json();
+      const accessToken = tokenData.access_token;
 
-        function saveApiKeys() {
-            localStorage.setItem('fs_client_id', document.getElementById('clientId').value.trim());
-            localStorage.setItem('fs_client_secret', document.getElementById('clientSecret').value.trim());
-        }
+      // 2. FatSecret API'sine Yemeği Ekle
+      const apiUrl = "https://platform.fatsecret.com/rest/server.api";
+      const apiParams = new URLSearchParams({
+        method: "food_entry.create",
+        format: "json",
+        food_entry_name: `${boxName} (Pazar Prep)`,
+        calories: calories,
+        protein: protein,
+        carbohydrate: carb,
+        fat: fat,
+        date: "0" // Bugün
+      });
 
-        function saveBoxes() {
-            localStorage.setItem('prep_boxes', JSON.stringify(boxes));
-            render();
-        }
+      const apiRes = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: apiParams
+      });
 
-        function updateVal(id, field, val) {
-            const box = boxes.find(b => b.id === id);
-            if(box) {
-                box[field] = Number(val);
-                localStorage.setItem('prep_boxes', JSON.stringify(boxes));
-            }
-        }
+      const apiData = await apiRes.json();
 
-        function resetWeek() {
-            if(confirm("Tüm kutular yeni hafta için sıfırlansın mı?")) {
-                boxes.forEach(b => b.eaten = false);
-                saveBoxes();
-            }
-        }
+      return new Response(JSON.stringify(apiData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
 
-        // --- FATSECRET API ENTEGRASYONU ---
-
-        // 1. Access Token Al
-        async function getFatSecretToken(clientId, clientSecret) {
-            const url = "https://oauth.fatsecret.com/connect/token";
-            const body = new URLSearchParams();
-            body.append("grant_type", "client_credentials");
-            body.append("scope", "basic premier");
-
-            const credentials = btoa(`${clientId}:${clientSecret}`);
-
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Basic ${credentials}`,
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: body
-            });
-
-            if (!response.ok) throw new Error("API Kimlik Doğrulama Başarısız!");
-            const data = await response.json();
-            return data.access_token;
-        }
-
-        // 2. Yemeği Günlüğe İşle (food_entry.create)
-        async function sendToFatSecret(box) {
-            const clientId = localStorage.getItem('fs_client_id');
-            const clientSecret = localStorage.getItem('fs_client_secret');
-
-            if (!clientId || !clientSecret) {
-                alert("Lütfen önce yukarıdaki 'FatSecret API Ayarları' bölümüne Client ID ve Secret değerlerini girin!");
-                return false;
-            }
-
-            try {
-                // Token Al
-                const token = await getFatSecretToken(clientId, clientSecret);
-
-                // API İsteği Gönder
-                const url = "https://platform.fatsecret.com/rest/server.api";
-                const params = new URLSearchParams({
-                    method: "food_entry.create",
-                    format: "json",
-                    food_entry_name: `${box.name} (Pazar Prep)`,
-                    calories: box.kcal,
-                    protein: box.protein,
-                    carbohydrate: box.carb,
-                    fat: box.fat,
-                    date: "0" // 0 = Bugün
-                });
-
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: params
-                });
-
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message || "FatSecret Hatası");
-                }
-
-                return true;
-            } catch (err) {
-                console.error(err);
-                alert("FatSecret'a Gönderilemedi: " + err.message);
-                return false;
-            }
-        }
-
-        async function eatBox(id) {
-            const box = boxes.find(b => b.id === id);
-            if (!box || box.eaten) return;
-
-            const statusEl = document.getElementById(`status-${id}`);
-            if(statusEl) statusEl.innerText = "⏳ FatSecret'a Gönderiliyor...";
-
-            const success = await sendToFatSecret(box);
-
-            if (success) {
-                box.eaten = true;
-                saveBoxes();
-                alert(`✅ ${box.name} tüketildi ve FatSecret'a işlendi!\n(${box.kcal} kcal, ${box.protein}g protein)`);
-            } else {
-                if(statusEl) statusEl.innerText = "❌ Gönderim Başarısız";
-            }
-        }
-
-        function render() {
-            const container = document.getElementById('boxes-container');
-            container.innerHTML = '';
-
-            boxes.forEach(box => {
-                const card = document.createElement('div');
-                card.className = `box-card ${box.eaten ? 'eaten' : ''}`;
-                card.innerHTML = `
-                    <div class="box-header">
-                        <span>${box.name}</span>
-                        ${box.eaten ? '<span class="badge">Tüketildi</span>' : ''}
-                    </div>
-                    <div class="inputs">
-                        <div class="input-group">
-                            <label>Kcal</label>
-                            <input type="number" value="${box.kcal}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'kcal', this.value)">
-                        </div>
-                        <div class="input-group">
-                            <label>Prot (g)</label>
-                            <input type="number" value="${box.protein}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'protein', this.value)">
-                        </div>
-                        <div class="input-group">
-                            <label>Karb (g)</label>
-                            <input type="number" value="${box.carb}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'carb', this.value)">
-                        </div>
-                        <div class="input-group">
-                            <label>Yağ (g)</label>
-                            <input type="number" value="${box.fat}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'fat', this.value)">
-                        </div>
-                    </div>
-                    <button class="btn-eat" onclick="eatBox(${box.id})" ${box.eaten ? 'disabled' : ''}>
-                        ${box.eaten ? 'Tüketildi' : 'Tüket & FatSecret\'a İşle'}
-                    </button>
-                    <div class="status-msg" id="status-${box.id}"></div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // --- NFC OKUMA / URL İLE OTOMATİK İŞLEME ---
-        // Örn: https://site.com/?eat=1
-        window.addEventListener('DOMContentLoaded', () => {
-            render();
-            const urlParams = new URLSearchParams(window.location.search);
-            const eatParam = urlParams.get('eat');
-            if (eatParam) {
-                const boxId = Number(eatParam);
-                setTimeout(() => {
-                    eatBox(boxId);
-                }, 500);
-            }
-        });
-    </script>
-</body>
-</html>
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: corsHeaders
+      });
+    }
+  }
+};
