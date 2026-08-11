@@ -1,290 +1,255 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prep Tracker & Cloudflare Worker</title>
-    <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --accent: #10b981;
-            --text: #f8fafc;
-            --muted: #94a3b8;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 20px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        h1 { font-size: 1.4rem; text-align: center; margin-bottom: 8px; }
-        .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
-        
-        .api-config {
-            background: #1e293b;
-            border: 1px dashed var(--muted);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .api-config summary { font-weight: bold; cursor: pointer; font-size: 0.85rem; color: var(--muted); }
-        .api-config input {
-            width: 100%;
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: white;
-            padding: 6px;
-            border-radius: 4px;
-            margin-top: 6px;
-            box-sizing: border-box;
-            font-size: 0.8rem;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meal Prep Tracker</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --accent: #3b82f6;
+      --consumed-bg: #14532d;
+      --consumed-border: #22c55e;
+      --text: #ffffff;
+      --text-muted: #a1a1aa;
+      --border: #3f3f46;
+    }
 
-        .box-card {
-            background: var(--card);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid #334155;
-            transition: all 0.2s ease;
-        }
-        .box-card.eaten {
-            opacity: 0.5;
-            border-color: #334155;
-        }
-        .box-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        .inputs {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin: 12px 0;
-        }
-        .input-group label {
-            display: block;
-            font-size: 0.7rem;
-            color: var(--muted);
-            margin-bottom: 2px;
-        }
-        .input-group input {
-            width: 100%;
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: white;
-            padding: 6px;
-            border-radius: 6px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-        button.btn-eat {
-            width: 100%;
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button.btn-eat:disabled {
-            background: #334155;
-            cursor: not-allowed;
-        }
-        .badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: #065f46;
-            color: #34d399;
-        }
-        .status-msg {
-            font-size: 0.8rem;
-            text-align: center;
-            margin-top: 6px;
-            min-height: 18px;
-        }
-        .btn-reset {
-            display: block;
-            width: 100%;
-            background: transparent;
-            color: var(--muted);
-            border: 1px solid var(--muted);
-            padding: 8px;
-            border-radius: 8px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-    </style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    h1, h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .select-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    select, input {
+      background-color: #27272a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:active {
+      opacity: 0.8;
+    }
+
+    .btn-reset {
+      background-color: #7f1d1d;
+      margin-top: 10px;
+    }
+
+    .consumed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .consumed-item {
+      background-color: var(--consumed-bg);
+      border: 1px solid var(--consumed-border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .consumed-details {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .consumed-title {
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .consumed-time {
+      font-size: 0.75rem;
+      color: #86efac;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>📦 Prep Tracker & Cloudflare Worker</h1>
-    <div class="subtitle">NFC Okut / Tıkla $\rightarrow$ Cloudflare $\rightarrow$ FatSecret</div>
+  <!-- ÖĞÜN OLUŞTURUCU -->
+  <div class="card">
+    <h1>Kutu Hazırla</h1>
 
-    <details class="api-config">
-        <summary>⚙️ Sistem Ayarları</summary>
-        <div style="margin-top: 8px;">
-            <label style="font-size:0.7rem; color:var(--muted);">Cloudflare Worker URL:</label>
-            <input type="text" id="workerUrl" placeholder="https://...workers.dev" onchange="saveApiKeys()">
-            <label style="font-size:0.7rem; color:var(--muted); margin-top:6px; display:block;">FatSecret Client ID:</label>
-            <input type="text" id="clientId" placeholder="Client ID" onchange="saveApiKeys()">
-            <label style="font-size:0.7rem; color:var(--muted); margin-top:6px; display:block;">FatSecret Client Secret:</label>
-            <input type="password" id="clientSecret" placeholder="Client Secret" onchange="saveApiKeys()">
-        </div>
-    </details>
+    <!-- PROTEİN -->
+    <div class="select-group">
+      <label>Protein Kaynağı</label>
+      <div class="row">
+        <select id="protein-name">
+          <option value="Fırın Tavuk Göğsü">Fırın Tavuk Göğsü</option>
+          <option value="Yağsız Dana Kıyma/Köfte">Yağsız Dana Kıyma/Köfte</option>
+          <option value="Hindi Göğüs Sote">Hindi Göğüs Sote</option>
+        </select>
+        <input type="text" id="protein-amount" value="200g">
+      </div>
+    </div>
 
-    <div id="boxes-container"></div>
+    <!-- KARBONHİDRAT -->
+    <div class="select-group">
+      <label>Karbonhidrat Kaynağı</label>
+      <div class="row">
+        <select id="carb-name">
+          <option value="Basmati Pirinç">Basmati Pirinç</option>
+          <option value="Başbaşı Bulgur">Başbaşı Bulgur</option>
+          <option value="Fırın Patates">Fırın Patates</option>
+        </select>
+        <input type="text" id="carb-amount" value="70g">
+      </div>
+    </div>
 
-    <button class="btn-reset" onclick="resetWeek()">🔄 Yeni Hafta (Sıfırla)</button>
+    <!-- YEŞİL / YAN -->
+    <div class="select-group">
+      <label>Yeşil / Zeytinyağlı</label>
+      <div class="row">
+        <select id="veg-name">
+          <option value="Zeytinyağlı Börülce">Zeytinyağlı Börülce</option>
+          <option value="Mevsim Salatası">Mevsim Salatası</option>
+          <option value="Fırın Sebze">Fırın Sebze</option>
+        </select>
+        <input type="text" id="veg-amount" value="120g">
+      </div>
+    </div>
 
-    <script>
-        const defaultBoxes = [
-            { id: 1, name: "Kutu 1", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 2, name: "Kutu 2", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 3, name: "Kutu 3", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 4, name: "Kutu 4", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false },
-            { id: 5, name: "Kutu 5", kcal: 550, protein: 45, carb: 60, fat: 12, eaten: false }
-        ];
+    <button onclick="logAndSendMeal()">Shortcuts'a Gönder & Kaydet</button>
+  </div>
 
-        let boxes = JSON.parse(localStorage.getItem('prep_boxes')) || defaultBoxes;
+  <!-- TÜKETİLEN KUTULAR -->
+  <div class="card">
+    <h2>Tüketilen Kutular</h2>
+    <div id="consumed-container" class="consumed-list">
+      <!-- Burası JS ile dolacak -->
+    </div>
+    <button class="btn-reset" onclick="resetDay()">Günü Sıfırla</button>
+  </div>
 
-        document.getElementById('workerUrl').value = localStorage.getItem('cf_worker_url') || '';
-        document.getElementById('clientId').value = localStorage.getItem('fs_client_id') || '';
-        document.getElementById('clientSecret').value = localStorage.getItem('fs_client_secret') || '';
+  <script>
+    // LocalStorage'dan geçmiş kutuları yükle
+    let consumedMeals = JSON.parse(localStorage.getItem('consumedMeals') || '[]');
 
-        function saveApiKeys() {
-            localStorage.setItem('cf_worker_url', document.getElementById('workerUrl').value.trim());
-            localStorage.setItem('fs_client_id', document.getElementById('clientId').value.trim());
-            localStorage.setItem('fs_client_secret', document.getElementById('clientSecret').value.trim());
-        }
+    function renderConsumed() {
+      const container = document.getElementById('consumed-container');
+      container.innerHTML = '';
 
-        function saveBoxes() {
-            localStorage.setItem('prep_boxes', JSON.stringify(boxes));
-            render();
-        }
+      if (consumedMeals.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">Henüz tüketilen kutu yok.</div>';
+        return;
+      }
 
-        function updateVal(id, field, val) {
-            const box = boxes.find(b => b.id === id);
-            if(box) {
-                box[field] = Number(val);
-                localStorage.setItem('prep_boxes', JSON.stringify(boxes));
-            }
-        }
+      consumedMeals.forEach((meal, index) => {
+        const itemHtml = `
+          <div class="consumed-item">
+            <div class="consumed-details">
+              <div class="consumed-title">Kutu #${index + 1}</div>
+              <div style="font-size: 0.85rem;">
+                ${meal.items.map(i => `${i.name} (${i.amount})`).join(' + ')}
+              </div>
+            </div>
+            <div class="consumed-time">${meal.time}</div>
+          </div>
+        `;
+        container.innerHTML += itemHtml;
+      });
+    }
 
-        function resetWeek() {
-            if(confirm("Tüm kutular yeni hafta için sıfırlansın mı?")) {
-                boxes.forEach(b => b.eaten = false);
-                saveBoxes();
-            }
-        }
+    function logAndSendMeal() {
+      // Form değerlerini topla
+      const mealData = {
+        items: [
+          { name: document.getElementById('protein-name').value, amount: document.getElementById('protein-amount').value },
+          { name: document.getElementById('carb-name').value, amount: document.getElementById('carb-amount').value },
+          { name: document.getElementById('veg-name').value, amount: document.getElementById('veg-amount').value }
+        ],
+        timestamp: new Date().toISOString(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
 
-        async function eatBox(id) {
-            const box = boxes.find(b => b.id === id);
-            if (!box || box.eaten) return;
+      // Tüketilenlere ekle ve LocalStorage'a kaydet
+      consumedMeals.push(mealData);
+      localStorage.setItem('consumedMeals', JSON.stringify(consumedMeals));
+      renderConsumed();
 
-            const workerUrl = localStorage.getItem('cf_worker_url');
-            const clientId = localStorage.getItem('fs_client_id');
-            const clientSecret = localStorage.getItem('fs_client_secret');
+      // Shortcuts URL Scheme tetikle
+      // Kestirme Adı: MealPrepLogger
+      const payload = encodeURIComponent(JSON.stringify(mealData));
+      const shortcutURL = `shortcuts://run-shortcut?name=MealPrepLogger&input=text&text=${payload}`;
+      
+      window.location.href = shortcutURL;
+    }
 
-            if (!workerUrl || !clientId || !clientSecret) {
-                alert("Lütfen önce 'Sistem Ayarları' menüsünden Worker URL, Client ID ve Secret alanlarını doldurun!");
-                return;
-            }
+    function resetDay() {
+      if (confirm("Bugünün kutularını sıfırlamak istediğine emin misin?")) {
+        consumedMeals = [];
+        localStorage.removeItem('consumedMeals');
+        renderConsumed();
+      }
+    }
 
-            const statusEl = document.getElementById(`status-${id}`);
-            if(statusEl) statusEl.innerText = "⏳ Cloudflare üzerinden aktarılıyor...";
-
-            try {
-                const response = await fetch(workerUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        clientId: clientId,
-                        clientSecret: clientSecret,
-                        boxName: box.name,
-                        calories: box.kcal,
-                        protein: box.protein,
-                        carb: box.carb,
-                        fat: box.fat
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                box.eaten = true;
-                saveBoxes();
-                alert(`✅ ${box.name} başarıyla FatSecret'a işlendi!\n(${box.kcal} kcal, ${box.protein}g protein)`);
-
-            } catch (err) {
-                console.error(err);
-                alert("Hata Oluştu: " + err.message);
-                if(statusEl) statusEl.innerText = "❌ Gönderim Başarısız";
-            }
-        }
-
-        function render() {
-            const container = document.getElementById('boxes-container');
-            container.innerHTML = '';
-
-            boxes.forEach(box => {
-                const card = document.createElement('div');
-                card.className = `box-card ${box.eaten ? 'eaten' : ''}`;
-                card.innerHTML = `
-                    <div class="box-header">
-                        <span>${box.name}</span>
-                        ${box.eaten ? '<span class="badge">Tüketildi</span>' : ''}
-                    </div>
-                    <div class="inputs">
-                        <div class="input-group">
-                            <label>Kcal</label>
-                            <input type="number" value="${box.kcal}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'kcal', this.value)">
-                        </div>
-                        <div class="input-group">
-                            <label>Prot (g)</label>
-                            <input type="number" value="${box.protein}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'protein', this.value)">
-                        </div>
-                        <div class="input-group">
-                            <label>Karb (g)</label>
-                            <input type="number" value="${box.carb}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'carb', this.value)">
-                        </div>
-                        <div class="input-group">
-                            <label>Yağ (g)</label>
-                            <input type="number" value="${box.fat}" ${box.eaten ? 'disabled' : ''} onchange="updateVal(${box.id}, 'fat', this.value)">
-                        </div>
-                    </div>
-                    <button class="btn-eat" onclick="eatBox(${box.id})" ${box.eaten ? 'disabled' : ''}>
-                        ${box.eaten ? 'Tüketildi' : 'Tüket & FatSecret\'a İşle'}
-                    </button>
-                    <div class="status-msg" id="status-${box.id}"></div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            render();
-            const urlParams = new URLSearchParams(window.location.search);
-            const eatParam = urlParams.get('eat');
-            if (eatParam) {
-                const boxId = Number(eatParam);
-                setTimeout(() => {
-                    eatBox(boxId);
-                }, 500);
-            }
-        });
-    </script>
+    // İlk açılışta ekrana bas
+    renderConsumed();
+  </script>
 </body>
 </html>
