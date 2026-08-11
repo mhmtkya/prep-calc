@@ -112,13 +112,28 @@
 
     .consumed .box-items { color: #e4e4e7; }
 
+    /* KUTU AKSİYON BUTONLARI (KOPYALA - SİL) */
+    .box-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-action {
+      background-color: #27272a;
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+
     .btn-consume {
       background-color: #27272a;
       color: white;
       border: 1px solid var(--card-border);
       width: 100%;
       padding: 12px;
-      margin-top: 4px;
     }
 
     .consumed .btn-consume { display: none; }
@@ -252,7 +267,7 @@
         <label style="color:#60a5fa; font-weight:bold;">Proteinler</label>
         <div id="p-list" class="item-list-manager"></div>
         <div style="display:flex; gap:4px;">
-          <input type="text" id="new-p" placeholder="Örn: Somon Ğöğsü" style="flex:1;">
+          <input type="text" id="new-p" placeholder="Örn: Somon Göğsü" style="flex:1;">
           <button class="btn-add" onclick="addSource('proteins', 'new-p')">Ekle</button>
         </div>
       </div>
@@ -282,7 +297,6 @@
   </div>
 
   <script>
-    // Varsayılan Kaynaklar
     const defaultSources = {
       proteins: ["Fırın Tavuk Göğsü", "Yağsız Dana Kıyma/Köfte", "Hindi Göğüs Sote"],
       carbs: ["Basmati Pirinç", "Başbaşı Bulgur", "Fırın Patates"],
@@ -303,7 +317,6 @@
       renderSettingsLists();
     }
 
-    // Select elemanlarını dinamik doldurma
     function updateSelectOptions() {
       const fillSelect = (id, list) => {
         const el = document.getElementById(id);
@@ -314,7 +327,6 @@
       fillSelect('v-select', sources.veggies);
     }
 
-    // Kaynak Yönetimi Listelerini Basma
     function renderSettingsLists() {
       const renderList = (containerId, type) => {
         const container = document.getElementById(containerId);
@@ -367,7 +379,12 @@
               <div>• ${box.items[1].name} (${box.items[1].amount})</div>
               <div>• ${box.items[2].name} (${box.items[2].amount})</div>
             </div>
-            ${!isConsumed ? `<button class="btn-consume" onclick="consumeBox(${index})">Tüket & Shortcuts'a Gönder</button>` : ''}
+            
+            <div class="box-actions">
+              ${!isConsumed ? `<button class="btn-consume" style="flex:2;" onclick="consumeBox(${index})">Tüket & Shortcuts'a Gönder</button>` : ''}
+              <button class="btn-action" style="flex:1;" onclick="duplicateBox(${index})">📋 Kopyala</button>
+              <button class="btn-action" style="color:#ef4444;" onclick="deleteSingleBox(${index})">🗑️ Sil</button>
+            </div>
           </div>
         `;
       });
@@ -391,6 +408,25 @@
       boxes.push(newBox);
       saveBoxes();
       closeModal('add-modal');
+    }
+
+    // KUTUYU ÇOĞALT/KOPYALA
+    function duplicateBox(index) {
+      const original = boxes[index];
+      const copiedBox = {
+        id: Date.now(),
+        consumed: false, // Yeni kopya her zaman tüketilmemiş olarak doğar
+        consumedTime: null,
+        items: JSON.parse(JSON.stringify(original.items)) // Derin kopya
+      };
+      boxes.push(copiedBox);
+      saveBoxes();
+    }
+
+    // TEK BİR KUTUYU SİL
+    function deleteSingleBox(index) {
+      boxes.splice(index, 1);
+      saveBoxes();
     }
 
     function consumeBox(index) {
