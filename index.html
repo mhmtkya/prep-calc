@@ -40,11 +40,7 @@
       border-bottom: 1px solid var(--card-border);
     }
 
-    h1 {
-      font-size: 1.2rem;
-      margin: 0;
-      color: var(--text);
-    }
+    h1 { font-size: 1.2rem; margin: 0; color: var(--text); }
 
     button {
       font-family: inherit;
@@ -56,11 +52,10 @@
       transition: opacity 0.2s;
     }
 
-    button:active {
-      opacity: 0.8;
-    }
+    button:active { opacity: 0.8; }
 
     .btn-add { background-color: var(--accent); color: white; }
+    .btn-settings { background-color: #27272a; color: white; border: 1px solid var(--card-border); }
     .btn-reset { background-color: var(--danger); color: white; font-size: 0.85rem; }
 
     .box-container {
@@ -69,7 +64,6 @@
       gap: 12px;
     }
 
-    /* KUTU KART TASARIMI */
     .box-card {
       background-color: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -92,10 +86,7 @@
       align-items: center;
     }
 
-    .box-title {
-      font-weight: bold;
-      font-size: 1.05rem;
-    }
+    .box-title { font-weight: bold; font-size: 1.05rem; }
 
     .box-status {
       font-size: 0.75rem;
@@ -119,9 +110,7 @@
       color: #d4d4d8;
     }
 
-    .consumed .box-items {
-      color: #e4e4e7;
-    }
+    .consumed .box-items { color: #e4e4e7; }
 
     .btn-consume {
       background-color: #27272a;
@@ -132,19 +121,18 @@
       margin-top: 4px;
     }
 
-    .consumed .btn-consume {
-      display: none; /* Tüketildikten sonra butonu gizle */
-    }
+    .consumed .btn-consume { display: none; }
 
-    /* MODAL FORM */
+    /* MODALLAR */
     .modal {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       align-items: center;
       justify-content: center;
       padding: 16px;
+      z-index: 10;
     }
 
     .modal-content {
@@ -153,18 +141,15 @@
       border-radius: 12px;
       padding: 20px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      max-height: 85vh;
+      overflow-y: auto;
     }
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 0.8rem; color: var(--text-muted); }
     
     .row {
@@ -181,22 +166,45 @@
       border-radius: 6px;
       font-size: 0.95rem;
     }
+
+    .item-list-manager {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .list-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #27272a;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    .btn-del {
+      background: none;
+      color: #ef4444;
+      padding: 2px 6px;
+      font-size: 0.8rem;
+    }
   </style>
 </head>
 <body>
 
   <header>
     <h1>Günün Kutuları</h1>
-    <div style="display: flex; gap: 8px;">
+    <div style="display: flex; gap: 6px;">
+      <button class="btn-settings" onclick="openSettingsModal()">⚙️ Kaynaklar</button>
       <button class="btn-reset" onclick="resetAllBoxes()">Sıfırla</button>
       <button class="btn-add" onclick="openModal()">+ Kutu Ekle</button>
     </div>
   </header>
 
-  <!-- ANA EKRAN KUTULAR LİSTESİ -->
-  <div id="box-list" class="box-container">
-    <!-- JS ile yüklenecek -->
-  </div>
+  <!-- KUTU LİSTESİ -->
+  <div id="box-list" class="box-container"></div>
 
   <!-- KUTU EKLEME MODALI -->
   <div id="add-modal" class="modal">
@@ -204,25 +212,17 @@
       <h2 style="margin:0; font-size:1.1rem;">Yeni Kutu Oluştur</h2>
       
       <div class="form-group">
-        <label>Protein</label>
+        <label>Protein Kaynağı</label>
         <div class="row">
-          <select id="p-name">
-            <option value="Fırın Tavuk Göğsü">Fırın Tavuk Göğsü</option>
-            <option value="Yağsız Dana Kıyma/Köfte">Yağsız Dana Kıyma/Köfte</option>
-            <option value="Hindi Göğüs Sote">Hindi Göğüs Sote</option>
-          </select>
+          <select id="p-select"></select>
           <input type="text" id="p-amt" value="200g">
         </div>
       </div>
 
       <div class="form-group">
-        <label>Karbonhidrat</label>
+        <label>Karbonhidrat Kaynağı</label>
         <div class="row">
-          <select id="c-name">
-            <option value="Basmati Pirinç">Basmati Pirinç</option>
-            <option value="Başbaşı Bulgur">Başbaşı Bulgur</option>
-            <option value="Fırın Patates">Fırın Patates</option>
-          </select>
+          <select id="c-select"></select>
           <input type="text" id="c-amt" value="70g">
         </div>
       </div>
@@ -230,28 +230,119 @@
       <div class="form-group">
         <label>Yeşil / Zeytinyağlı</label>
         <div class="row">
-          <select id="v-name">
-            <option value="Zeytinyağlı Börülce">Zeytinyağlı Börülce</option>
-            <option value="Mevsim Salatası">Mevsim Salatası</option>
-            <option value="Fırın Sebze">Fırın Sebze</option>
-          </select>
+          <select id="v-select"></select>
           <input type="text" id="v-amt" value="120g">
         </div>
       </div>
 
       <div style="display:flex; gap:8px; margin-top:8px;">
-        <button style="flex:1; background:#3f3f46; color:white;" onclick="closeModal()">İptal</button>
+        <button style="flex:1; background:#3f3f46; color:white;" onclick="closeModal('add-modal')">İptal</button>
         <button style="flex:1;" class="btn-add" onclick="saveNewBox()">Kaydet</button>
       </div>
     </div>
   </div>
 
-  <script>
-    let boxes = JSON.parse(localStorage.getItem('myMealBoxes') || '[]');
+  <!-- KAYNAK YÖNETİMİ (AYARLAR) MODALI -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <h2 style="margin:0; font-size:1.1rem;">Besin Kaynaklarını Yönet</h2>
+      
+      <!-- PROTEIN YÖNETİMİ -->
+      <div class="form-group">
+        <label style="color:#60a5fa; font-weight:bold;">Proteinler</label>
+        <div id="p-list" class="item-list-manager"></div>
+        <div style="display:flex; gap:4px;">
+          <input type="text" id="new-p" placeholder="Örn: Somon Ğöğsü" style="flex:1;">
+          <button class="btn-add" onclick="addSource('proteins', 'new-p')">Ekle</button>
+        </div>
+      </div>
 
-    function saveToStorage() {
+      <!-- KARB YÖNETİMİ -->
+      <div class="form-group">
+        <label style="color:#facc15; font-weight:bold;">Karbonhidratlar</label>
+        <div id="c-list" class="item-list-manager"></div>
+        <div style="display:flex; gap:4px;">
+          <input type="text" id="new-c" placeholder="Örn: Tatlı Patates" style="flex:1;">
+          <button class="btn-add" onclick="addSource('carbs', 'new-c')">Ekle</button>
+        </div>
+      </div>
+
+      <!-- SEBZE YÖNETİMİ -->
+      <div class="form-group">
+        <label style="color:#4ade80; font-weight:bold;">Yeşil / Zeytinyağlılar</label>
+        <div id="v-list" class="item-list-manager"></div>
+        <div style="display:flex; gap:4px;">
+          <input type="text" id="new-v" placeholder="Örn: Sote Ispanak" style="flex:1;">
+          <button class="btn-add" onclick="addSource('veggies', 'new-v')">Ekle</button>
+        </div>
+      </div>
+
+      <button style="background:#3f3f46; color:white; margin-top:10px;" onclick="closeModal('settings-modal')">Kapat</button>
+    </div>
+  </div>
+
+  <script>
+    // Varsayılan Kaynaklar
+    const defaultSources = {
+      proteins: ["Fırın Tavuk Göğsü", "Yağsız Dana Kıyma/Köfte", "Hindi Göğüs Sote"],
+      carbs: ["Basmati Pirinç", "Başbaşı Bulgur", "Fırın Patates"],
+      veggies: ["Zeytinyağlı Börülce", "Mevsim Salatası", "Fırın Sebze"]
+    };
+
+    let sources = JSON.parse(localStorage.getItem('myMealSources')) || defaultSources;
+    let boxes = JSON.parse(localStorage.getItem('myMealBoxes')) || [];
+
+    function saveBoxes() {
       localStorage.setItem('myMealBoxes', JSON.stringify(boxes));
       renderBoxes();
+    }
+
+    function saveSources() {
+      localStorage.setItem('myMealSources', JSON.stringify(sources));
+      updateSelectOptions();
+      renderSettingsLists();
+    }
+
+    // Select elemanlarını dinamik doldurma
+    function updateSelectOptions() {
+      const fillSelect = (id, list) => {
+        const el = document.getElementById(id);
+        el.innerHTML = list.map(item => `<option value="${item}">${item}</option>`).join('');
+      };
+      fillSelect('p-select', sources.proteins);
+      fillSelect('c-select', sources.carbs);
+      fillSelect('v-select', sources.veggies);
+    }
+
+    // Kaynak Yönetimi Listelerini Basma
+    function renderSettingsLists() {
+      const renderList = (containerId, type) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = sources[type].map((item, index) => `
+          <div class="list-item-row">
+            <span>${item}</span>
+            <button class="btn-del" onclick="deleteSource('${type}', ${index})">✕ Sil</button>
+          </div>
+        `).join('');
+      };
+      renderList('p-list', 'proteins');
+      renderList('c-list', 'carbs');
+      renderList('v-list', 'veggies');
+    }
+
+    function addSource(type, inputId) {
+      const input = document.getElementById(inputId);
+      const val = input.value.trim();
+      if (val) {
+        sources[type].push(val);
+        input.value = '';
+        saveSources();
+      }
+    }
+
+    function deleteSource(type, index) {
+      sources[type].splice(index, 1);
+      saveSources();
     }
 
     function renderBoxes() {
@@ -259,13 +350,13 @@
       container.innerHTML = '';
 
       if (boxes.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;">Henüz kutu eklenmedi.<br>Yukarıdaki "+ Kutu Ekle" butonunu kullanabilirsin.</div>';
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;">Henüz kutu eklenmedi.<br>"+ Kutu Ekle" butonunu kullanabilirsin.</div>';
         return;
       }
 
       boxes.forEach((box, index) => {
         const isConsumed = box.consumed;
-        const cardHtml = `
+        container.innerHTML += `
           <div class="box-card ${isConsumed ? 'consumed' : ''}">
             <div class="box-header">
               <span class="box-title">Kutu #${index + 1}</span>
@@ -279,12 +370,12 @@
             ${!isConsumed ? `<button class="btn-consume" onclick="consumeBox(${index})">Tüket & Shortcuts'a Gönder</button>` : ''}
           </div>
         `;
-        container.innerHTML += cardHtml;
       });
     }
 
-    function openModal() { document.getElementById('add-modal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('add-modal').style.display = 'none'; }
+    function openModal() { updateSelectOptions(); document.getElementById('add-modal').style.display = 'flex'; }
+    function openSettingsModal() { renderSettingsLists(); document.getElementById('settings-modal').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function saveNewBox() {
       const newBox = {
@@ -292,38 +383,33 @@
         consumed: false,
         consumedTime: null,
         items: [
-          { name: document.getElementById('p-name').value, amount: document.getElementById('p-amt').value },
-          { name: document.getElementById('c-name').value, amount: document.getElementById('c-amt').value },
-          { name: document.getElementById('v-name').value, amount: document.getElementById('v-amt').value }
+          { name: document.getElementById('p-select').value, amount: document.getElementById('p-amt').value },
+          { name: document.getElementById('c-select').value, amount: document.getElementById('c-amt').value },
+          { name: document.getElementById('v-select').value, amount: document.getElementById('v-amt').value }
         ]
       };
-
       boxes.push(newBox);
-      saveToStorage();
-      closeModal();
+      saveBoxes();
+      closeModal('add-modal');
     }
 
     function consumeBox(index) {
-      // 1. Kutuyu tüketildi olarak işaretle ve zaman ekle
       boxes[index].consumed = true;
       boxes[index].consumedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      saveToStorage();
+      saveBoxes();
 
-      // 2. Kutu içeriğini JSON formatına getirip Shortcuts'a at
       const payload = encodeURIComponent(JSON.stringify(boxes[index]));
-      const shortcutURL = `shortcuts://run-shortcut?name=MealPrepLogger&input=text&text=${payload}`;
-      
-      window.location.href = shortcutURL;
+      window.location.href = `shortcuts://run-shortcut?name=MealPrepLogger&input=text&text=${payload}`;
     }
 
     function resetAllBoxes() {
       if (confirm("Tüm kutuları silip ekranı sıfırlamak istediğine emin misin?")) {
         boxes = [];
-        saveToStorage();
+        saveBoxes();
       }
     }
 
-    // Ekran açılışında render et
+    // Başlangıç
     renderBoxes();
   </script>
 </body>
